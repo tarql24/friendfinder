@@ -7,5 +7,7 @@
 2. Compare new user to score object already in friends.js file</br>
 </br>
 <i>Instructions said get the difference between all answers and the one with the highest number is the match to populate in modal pop up.</i></br>
+Was not able to deploy to Heroku because site did not work locally<br>
+https://git.heroku.com/safe-forest-73858.git
 
 
