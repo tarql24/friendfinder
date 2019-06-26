@@ -1,85 +1,66 @@
-// ===============================================================================
-// LOAD DATA
-// We are linking our routes to a series of "data" sources.
-// These data sources hold arrays of information on friends data.
-// ===============================================================================
-var path = require('path');
-var friendsArray = require('../data/friends.js');
-// var waitListData = require('../data/waitinglistData');
+// import array of friends data
+var friends = require('../data/friends');
 
-// ===============================================================================
-// ROUTING
-// ===============================================================================
-
-module.exports = function(app) {
-  // API GET Requests
-  // Below code handles when users "visit" a page.
-  // In each of the below cases when a user visits a link
-  // (ex: localhost:PORT/api/admin... they are shown a JSON of the data in the table)
-  // ---------------------------------------------------------------------------
-
+var api = function(app) {
+  //    * A GET route with the url `/api/friends`. This will be used to display a JSON of all possible friends.
   app.get('/api/friends', function(req, res) {
-    res.json(friendsArray);
+    res.json(friends);
   });
 
+  //* A POST routes `/api/friends`. This will be used to handle incoming survey results.
+  // This route will also be used to handle the compatibility logic.
   app.post('/api/friends', function(req, res) {
-    var newFriend = {
-      name: req.body.name,
-      photo: req.body.photo,
-      scores: JSON.parse(req.body.scores)
-    };
+    // store request from the client post request into req.body
+    var newFriend = req.body;
 
-    //   var diffArray = [];
+    // this array will be used to hold scores for other users from friends data array that is not the current user
+    var otherUsersScores = [];
 
-    //   userArray.forEach(function(item, index) {
-    //     var difference = 0;
-    //     for (var i = 0; i < item.scores.length; i++) {
-    //       difference += Math.abs(item.scores[i] - newPerson.scores[i]);
-    //     }
-    //     diffArray.push({ difference: difference, index: index });
-    //   });
+    // this array will hold the difference between current user's scores against those from other users, question
+    // by question using absolute value
+    var diffs = [];
 
-    //   diffArray.sort(function(a, b) {
-    //     return a.difference - b.difference;
-    //   });
+    // this array will be used to hold the total difference between each of the other users and the current user
+    var totalDiffs = [];
 
-    friendsArray.push(newFriend);
-    //   res.json(userArray[diffArray[0].index]);
+    // function to loop through each of the scores array in each friend object in the friends array and calculates the
+    // absolute differences
+    friends.forEach(function(friend, index, arr) {
+      if (otherUsersScores.length < 10) {
+        for (var i = 0; i < friend.scores.length; i++) {
+          otherUsersScores.push(friend.scores[i]);
+          diffs.push(Math.abs(newFriend.scores[i] - otherUsersScores[i]));
+        }
+
+        totalDiffs.push(diffs.reduce(sum, 0));
+      }
+
+      // empty these two arrays so that it can be used for the next user in the friends array
+      otherUsersScores = [];
+      diffs = [];
+    });
+
+    // variable to hold user whose total difference from current user is closest to zero
+    var match = totalDiffs.reduce(function(prev, curr) {
+      return Math.abs(curr - 0) < Math.abs(prev - 0) ? curr : prev;
+    });
+
+    // loop through the friends array and return the data of the friend with the same index number as the match from the total Diffs array.
+    for (var i = 0; i < friends.length; i++) {
+      if (totalDiffs.indexOf(match) === friends.indexOf(friends[i])) {
+        res.json(friends[i]);
+      }
+    }
+
+    // push the data of the current user to the friends array
+    friends.push(newFriend);
   });
 };
-//   app.get('/api/waitlist', function(req, res) {
-//     res.json(waitListData);
-//   });
 
-// API POST Requests
-// Below code handles when a user submits a form and thus submits data to the server.
-// In each of the below cases, when a user submits form data (a JSON object)
-// ...the JSON is pushed to the appropriate JavaScript array
-// (ex. User fills out a reservation request... this data is then sent to the server...
-// Then the server saves the data to the tableData array)
-// ---------------------------------------------------------------------------
+// sums diffs array
+function sum(total, num) {
+  return total + num;
+}
 
-// app.post('/api/friends', function(req, res) {
-//   // Note the code here. Our "server" will respond to requests and let users know if they have a table or not.
-//   // It will do this by sending out the value "true" have a table
-//   // req.body is available since we're using the body parsing middleware
-//   if (friends.length < 100) {
-//     friends.push(req.body);
-//     res.json(true);
-//   } else {
-//     waitListData.push(req.body);
-//     res.json(false);
-//   }
-// });
-
-// // ---------------------------------------------------------------------------
-// // I added this below code so you could clear out the table while working with the functionality.
-// // Don"t worry about it!
-
-// app.post('/api/clear', function(req, res) {
-//   // Empty out the arrays of data
-//   tableData.length = [];
-//   waitListData.length = [];
-
-//   res.json({ ok: true });
-// });
+// exports the get and post api requests
+module.exports = api;
